@@ -72,7 +72,45 @@ if (typeof window[`${WORKER_ID}DeletedCount`] === 'undefined') {
 var deletedCount = window[`${WORKER_ID}DeletedCount`];
 var failedCount = window[`${WORKER_ID}FailedCount`];
 
+function ensureNotificationsPanelOpen() {
+    // Check if notifications panel is visible
+    const notificationsPanel = document.querySelector('[class*="notification"], [class*="Notification"], .notifications, #notifications');
+    
+    // Look for the notifications button/bell icon
+    const notificationButtons = [
+        document.querySelector('[aria-label*="notification"]'),
+        document.querySelector('[aria-label*="Notification"]'),
+        document.querySelector('button[class*="notification"]'),
+        document.querySelector('button[class*="Notification"]'),
+        ...Array.from(document.querySelectorAll('button')).filter(btn => {
+            const text = (btn.textContent || btn.getAttribute('aria-label') || '').toLowerCase();
+            return text.includes('notification') || text.includes('notifikation');
+        })
+    ].filter(Boolean);
+    
+    // Check if "Absence requests" section is visible
+    const absenceSection = Array.from(document.querySelectorAll('[class*="section"], div, span')).find(el => {
+        const text = (el.textContent || '').toLowerCase();
+        return text.includes('absence request') || text.includes('fraværsanmodning');
+    });
+    
+    // If absence section not visible or panel seems closed, click notifications button
+    if (!absenceSection || (notificationButtons.length > 0 && !absenceSection.offsetParent)) {
+        console.log(`[${WORKER_ID}] 🔔 Notifications panel closed - opening...`);
+        for (const btn of notificationButtons) {
+            if (btn && btn.offsetParent) {
+                btn.click();
+                console.log(`[${WORKER_ID}] ✓ Clicked notifications button`);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 function findAbsenceRequestRows() {
+    // Make sure notifications panel is open first
+    ensureNotificationsPanelOpen();
     const possibleSelectors = [
         '.absenceRequest__item',
         '[data-test-id="leaveRequestDataItem"]',

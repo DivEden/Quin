@@ -1,0 +1,235 @@
+═══════════════════════════════════════════════════════════════════════
+  🖥️  UNIFIED CONSOLE - QUICK REFERENCE GUIDE
+═══════════════════════════════════════════════════════════════════════
+
+WHAT IS THE UNIFIED CONSOLE?
+-----------------------------
+It's an always-on-top window that displays all worker logs combined
+in one place. You can see what all 6 workers are doing without 
+switching between browser tabs!
+
+═══════════════════════════════════════════════════════════════════════
+  WINDOW LAYOUT
+═══════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────┐
+│  🎯 QUINIX Workers - Unified Console                        │ ← Title Bar
+├─────────────────────────────────────────────────────────────┤
+│  🔄 Active - Rotation cycle #42 | Next refresh in 145s      │ ← Status Bar
+├─────────────────────────────────────────────────────────────┤
+│  [12:34:56] Unified console started                         │
+│  [12:34:57] Loading worker scripts...                       │
+│  [12:35:02] [WORKER1_TOP] Script injected                   │ ← Color: Cyan
+│  [12:35:03] [WORKER2_SIXTH1] Script injected                │ ← Color: Orange
+│  [12:35:04] [WORKER3_THIRD] Script injected                 │ ← Color: Yellow
+│  [12:35:05] [WORKER4_HALF] Script injected                  │ ← Color: Blue
+│  [12:35:06] [WORKER5_TWOTHIRD] Script injected              │ ← Color: Purple
+│  [12:35:07] [WORKER6_BOTTOM] Script injected                │ ← Color: Light Blue
+│  [12:35:10] ALL WORKERS STARTED! 🎉                          │
+│  [12:35:30] [WORKER1_TOP] Progress: 12 denied, 0 failed     │
+│  [12:35:31] [WORKER2_SIXTH1] Progress: 10 denied, 0 failed  │
+│  [12:40:00] 🔄 REFRESHING ALL TABS...                        │
+│  [12:40:02] [WORKER1_TOP] Tab 1 refreshed                   │
+│  ...                                                         │
+│  ▼ (Auto-scrolls to show latest)                            │
+└─────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════
+  COLOR CODING
+═══════════════════════════════════════════════════════════════════════
+
+Each worker has a unique color for easy identification:
+
+🔷 WORKER1_TOP       → Cyan (Teal/Aqua)
+🟠 WORKER2_SIXTH1    → Orange
+🟡 WORKER3_THIRD     → Yellow
+🔵 WORKER4_HALF      → Blue
+🟣 WORKER5_TWOTHIRD  → Purple/Magenta
+🔷 WORKER6_BOTTOM    → Light Blue
+
+System messages are in Green
+Errors are in Red
+Success messages are in Cyan
+
+═══════════════════════════════════════════════════════════════════════
+  WINDOW FEATURES
+═══════════════════════════════════════════════════════════════════════
+
+✓ ALWAYS ON TOP
+  The window stays visible even when you click on the browser
+  or other applications. Perfect for monitoring!
+
+✓ AUTO-SCROLL
+  New messages automatically scroll into view. You always see
+  the latest activity.
+
+✓ DARK THEME
+  Easy on the eyes with a professional dark background and
+  color-coded text.
+
+✓ TIMESTAMP
+  Every message shows the exact time [HH:MM:SS] so you can
+  track when things happened.
+
+✓ SCROLLABLE HISTORY
+  Keeps the last 1000 log messages. Scroll up to review
+  earlier activity.
+
+✓ RESIZABLE
+  Grab the edges to resize the window to your preference.
+  Default: 1000x600 pixels
+
+═══════════════════════════════════════════════════════════════════════
+  MESSAGE TYPES
+═══════════════════════════════════════════════════════════════════════
+
+[12:34:56] System message
+→ General system information (green)
+
+[12:34:56] [WORKER1_TOP] Worker message
+→ Specific worker activity (worker's unique color)
+
+[12:34:56] [WORKER1_TOP] Progress: 42 denied, 0 failed
+→ Worker progress update (worker's color)
+
+[12:34:56] ✅ All workers started!
+→ Success message (cyan)
+
+[12:34:56] ❌ ERROR: Something went wrong
+→ Error message (red)
+
+[12:34:56] ────────────────────────────────────────
+→ Section separator (gray)
+
+═══════════════════════════════════════════════════════════════════════
+  STATUS BAR UPDATES
+═══════════════════════════════════════════════════════════════════════
+
+The top status bar shows real-time information:
+
+⏳ Initializing...
+→ Program starting up
+
+🌐 Opening 6 tabs...
+→ Browser tabs being created
+
+💉 Injecting worker scripts...
+→ Scripts being loaded into tabs
+
+🔄 Active - Rotation cycle #42 | Next refresh in 145s
+→ Running normally, showing:
+  • Current rotation cycle number
+  • Seconds until next auto-refresh
+
+⏸️  Stopped - Workers still running in browser
+→ Program stopped but workers continue
+
+❌ Error occurred
+→ Something went wrong
+
+═══════════════════════════════════════════════════════════════════════
+  WHAT YOU'LL SEE
+═══════════════════════════════════════════════════════════════════════
+
+STARTUP (First 10-15 seconds):
+- Console window appears
+- System messages about loading scripts
+- "Opening X tabs..." messages
+- Six script injection confirmations (one per worker)
+- "ALL WORKERS STARTED!" success message
+
+RUNNING (Every few seconds):
+- Worker progress updates as they process requests
+- Each worker reports: "X denied, Y failed"
+- Updates only appear when numbers change
+
+STATUS CHECKS (Every 30 seconds):
+- "📊 Status Update - All Workers:"
+- Complete status for all 6 workers
+- Shows total progress for each
+
+AUTO-REFRESH (Every 5 minutes):
+- "🔄 REFRESHING ALL TABS..."
+- Each tab reports refresh + script re-injection
+- Ensures workers never slow down
+
+═══════════════════════════════════════════════════════════════════════
+  TIPS & TRICKS
+═══════════════════════════════════════════════════════════════════════
+
+💡 Keep it on a second monitor
+   Perfect for dual-monitor setups! Keep console on one screen,
+   work on the other.
+
+💡 Minimize the terminal window
+   The Python terminal (black window) can be minimized.
+   Only the unified console needs to stay visible.
+
+💡 Resize for your needs
+   Make it smaller and tuck it in a corner, or maximize it
+   to see all details.
+
+💡 Look for color patterns
+   If one color stops appearing, that worker might be stuck.
+
+💡 Watch the refresh cycle
+   Status bar counts down to next refresh. Workers get
+   a fresh start every 5 minutes!
+
+💡 Scroll up to review
+   If you see an error, scroll up to see what led to it.
+
+═══════════════════════════════════════════════════════════════════════
+  TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════
+
+Q: Console window doesn't appear
+A: Make sure tkinter is installed (comes with Python by default)
+
+Q: Window appears but stays blank
+A: Check the Python terminal window for errors
+
+Q: Can't see some colors
+A: Colors are optimized for dark theme. Window uses #1e1e1e background.
+
+Q: Window is too small/large
+A: Drag the edges to resize, or edit quinix_tab_manager.py line ~56:
+   self.root.geometry("1000x600")  ← Change these numbers
+
+Q: Window disappears behind browser
+A: The window should be always-on-top. If not, there might be
+   a conflict with other always-on-top software.
+
+Q: Too many messages, hard to follow
+A: Console keeps last 1000 messages. Older ones auto-delete.
+   You can adjust STATUS_CHECK_INTERVAL in the script to reduce
+   message frequency.
+
+Q: Want to copy text from console
+A: Click and drag to select text, then Ctrl+C to copy
+
+═══════════════════════════════════════════════════════════════════════
+  KEYBOARD SHORTCUTS
+═══════════════════════════════════════════════════════════════════════
+
+In the unified console window:
+
+Ctrl + C        Copy selected text
+Ctrl + A        Select all text (for copying entire log)
+Scroll Wheel    Scroll up/down through messages
+Home            Jump to first message
+End             Jump to latest message
+Page Up/Down    Scroll faster
+
+In the Python terminal window:
+
+Ctrl + C        Stop the program (workers keep running in browser)
+Ctrl + Break    Force quit
+
+═══════════════════════════════════════════════════════════════════════
+
+ENJOY YOUR UNIFIED VIEW OF ALL WORKERS! 🎉
+
+Any issues? Check the main terminal window for error messages.
+
+═══════════════════════════════════════════════════════════════════════

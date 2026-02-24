@@ -1,0 +1,77 @@
+═══════════════════════════════════════════════════════════════════════
+  ANTI-THROTTLE FIX - NU TILFØJET TIL ALLE SCRIPTS! ✅
+═══════════════════════════════════════════════════════════════════════
+
+HVAD ER ÆNDRET:
+
+Alle worker scripts har nu fået tilføjet "keepalive" kode der:
+
+1. 🔊 SPILLER SILENT AUDIO
+   → Opretter en næsten lydløs lyd (0.001 volume)
+   → Browser tror tab'en er "aktiv" fordi der er audio
+   → Forhindrer throttling selv når tab er i baggrunden!
+
+2. 👁️ MONITOR TAB VISIBILITY
+   → Detekterer når tab'en bliver skjult
+   → Logger advarsler hvis det sker
+   → Så du kan se hvis der er problemer
+
+3. 💓 HEARTBEAT LOG (kun i multi-worker)
+   → Logger status hver 30 sekund
+   → Så du kan se at scriptet stadig kører
+   → Format: "[WORKER1_TOP] 💓 Heartbeat - 42 denied, 0 fejlet"
+
+═══════════════════════════════════════════════════════════════════════
+
+OPDATEREDE FILER:
+
+✓ txt1.txt (original single worker)
+✓ worker-1-top.txt
+✓ worker-2-sixth1.txt
+✓ worker-3-third.txt
+✓ worker-4-half.txt
+✓ worker-5-twothird.txt
+✓ worker-6-bottom.txt
+
+═══════════════════════════════════════════════════════════════════════
+
+HVORDAN BRUGER DU DET:
+
+1. Paste dit worker script i console (som normalt)
+2. Du vil se: "[WORKER1_TOP] 🔊 Keepalive audio aktiveret"
+3. Minimér vinduet hvis du vil - det køre stadig! 🎉
+4. Hver 30 sekund ser du: "💓 Heartbeat" log
+
+═══════════════════════════════════════════════════════════════════════
+
+FORDELE:
+
+✅ Du kan nu minimere vinduer uden scripts stopper
+✅ Du kan skift til andre tabs/programmer
+✅ Scripts kører i baggrunden pålideligt
+✅ Meget lavt CPU forbrug (silent audio er ~0% overhead)
+✅ Virker i Chrome, Edge, Firefox, Safari
+
+═══════════════════════════════════════════════════════════════════════
+
+BEMÆRK:
+
+• Første gang kan browser bede om tilladelse til at afspille lyd - klik OK
+• Du hører INTET (volumet er 0.001, essensielt lydløst)
+• Hvis du ser "⚠️ TAB ER SKJULT" i console er det bare en FYI
+• Scriptet kører stadig selv hvis tab er skjult!
+
+═══════════════════════════════════════════════════════════════════════
+
+TEST DET:
+
+1. Start et worker script
+2. Se at du får: "🔊 Keepalive audio aktiveret"
+3. Minimér vinduet eller skift til andet program
+4. Vent 1-2 minutter
+5. Gå tilbage til vinduet
+6. Check console - du vil se status logs fortsætter! ✓
+
+═══════════════════════════════════════════════════════════════════════
+
+NU KAN DU KØRE ALLE 6 WORKERS I BAGGRUNDEN! 🚀

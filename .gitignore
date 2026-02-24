@@ -1,0 +1,27 @@
+# Python virtual environments
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Edge browser profiles (contains personal login data)
+EdgeProfile*/
+EdgeAutomationProfile/
+
+# Python egg files
+*.egg-info/
+dist/
+build/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,172 @@
+═══════════════════════════════════════════════════════════════════════
+  PYTHON TAB MANAGER - SETUP INSTRUCTIONS (WITH UNIFIED CONSOLE!)
+═══════════════════════════════════════════════════════════════════════
+
+This Python program solves the tab throttling problem by:
+✓ Opening all 6 workers in separate tabs automatically
+✓ Rotating focus between tabs to keep them all active
+✓ Auto-refreshing all tabs every 5 minutes
+✓ Preventing browser from throttling background tabs
+✓ 🆕 UNIFIED CONSOLE - All worker logs in one always-on-top window!
+✓ 🆕 Color-coded logs for each worker
+✓ 🆕 Real-time status updates in the console window
+
+═══════════════════════════════════════════════════════════════════════
+  STEP 1: INSTALL PYTHON (if not already installed)
+═══════════════════════════════════════════════════════════════════════
+
+1. Download Python from: https://www.python.org/downloads/
+2. Install Python 3.8 or higher
+3. ✅ IMPORTANT: Check "Add Python to PATH" during installation!
+4. Verify installation:
+   - Open Command Prompt (cmd)
+   - Type: python --version
+   - You should see: Python 3.x.x
+
+═══════════════════════════════════════════════════════════════════════
+  STEP 2: INSTALL SELENIUM
+═══════════════════════════════════════════════════════════════════════
+
+Open Command Prompt in this folder and run:
+
+   pip install -r requirements.txt
+
+OR simply:
+
+   pip install selenium
+
+You should see: "Successfully installed selenium-X.X.X"
+
+═══════════════════════════════════════════════════════════════════════
+  STEP 3: CONFIGURE THE SCRIPT
+═══════════════════════════════════════════════════════════════════════
+
+Open: quinix_tab_manager.py
+
+Find this line (around line 29):
+   QUINYX_URL = "https://YOUR_COMPANY.quinyx.com/absence-requests"
+
+Change it to YOUR actual Quinyx URL, for example:
+   QUINYX_URL = "https://acme.quinyx.com/manager/absence-requests"
+
+Save the file!
+
+═══════════════════════════════════════════════════════════════════════
+  STEP 4: RUN THE PROGRAM
+═══════════════════════════════════════════════════════════════════════
+
+1. Make sure Chrome browser is installed
+
+2. Open Command Prompt in this folder
+
+3. Run:
+   python quinix_tab_manager.py
+
+4. The program will:
+   ✓ Open Chrome with 6 tabs
+   ✓ Navigate to your Quinyx page
+   ✓ Wait 10 seconds (for you to login if needed)
+   ✓ Inject all 6 worker scripts
+   ✓ Start rotating between tabs
+
+5. Watch the magic happen! 🎉
+
+   A UNIFIED CONSOLE WINDOW will appear showing:
+   - All worker logs combined in one place
+   - Color-coded messages for each worker
+   - Real-time progress updates
+   - Always stays on top so you can monitor while doing other things
+
+═══════════════════════════════════════════════════════════════════════
+  🖥️  UNIFIED CONSOLE WINDOW - NEW!
+═══════════════════════════════════════════════════════════════════════
+
+The program now opens a special always-on-top window that shows:
+
+✓ All 6 worker logs combined in one view
+✓ Each worker has a unique color for easy identification
+✓ Real-time status updates (denied/failed counts)
+✓ System messages (refreshes, errors, etc.)
+✓ Auto-scrolls to show latest messages
+✓ Stays on top of all windows (including the browser!)
+
+This means you can:
+- See all worker progress without switching tabs
+- Keep the console visible while working on other things
+- Easily spot which workers are active or having issues
+- Monitor everything from one central location
+
+═══════════════════════════════════════════════════════════════════════
+  HOW IT WORKS
+═══════════════════════════════════════════════════════════════════════
+
+The program continuously rotates between the 6 tabs:
+
+  Tab 1 (Worker 1) → Focus for 5 seconds
+  Tab 2 (Worker 2) → Focus for 5 seconds
+  Tab 3 (Worker 3) → Focus for 5 seconds
+  Tab 4 (Worker 4) → Focus for 5 seconds
+  Tab 5 (Worker 5) → Focus for 5 seconds
+  Tab 6 (Worker 6) → Focus for 5 seconds
+  → Repeat cycle
+
+This keeps ALL tabs active and prevents throttling!
+
+PLUS: Every 5 minutes, all tabs are automatically REFRESHED and 
+scripts are re-injected. This ensures workers never slow down!
+
+Every 30 seconds, the unified console shows status updates with
+how many requests each worker has processed.
+
+═══════════════════════════════════════════════════════════════════════
+  ADVANCED: USE YOUR CHROME PROFILE (Stay Logged In)
+═══════════════════════════════════════════════════════════════════════
+
+If you want to use your existing Chrome profile (so you're already
+logged in), edit quinix_tab_manager.py:
+
+Find these commented lines (around line 53):
+   # user_data_dir = r"C:\Users\YourUsername\AppData\Local\Google\Chrome\User Data"
+   # options.add_argument(f"user-data-dir={user_data_dir}")
+   # options.add_argument("profile-directory=Default")
+
+Uncomment them and update the path:
+   user_data_dir = r"C:\Users\MadsE\AppData\Local\Google\Chrome\User Data"
+   options.add_argument(f"user-data-dir={user_data_dir}")
+   options.add_argument("profile-directory=Default")
+
+⚠️  WARNING: Close ALL Chrome windows before running with this option!
+
+═══════════════════════════════════════════════════════════════════════
+  TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════
+
+Problem: "python is not recognized"
+Solution: Python not in PATH. Reinstall Python with "Add to PATH" checked.
+
+Problem: "No module named 'selenium'"
+Solution: Run: pip install selenium
+
+Problem: Browser doesn't open
+Solution: Make sure Chrome is installed. Selenium 4.6+ auto-downloads ChromeDriver.
+
+Problem: "Worker file not found"
+Solution: Run the script from the quinix-workers folder where all worker files are.
+
+Problem: Workers don't start
+Solution: Make sure you're logged into Quinyx. Check browser console for errors.
+
+═══════════════════════════════════════════════════════════════════════
+  TIPS
+═══════════════════════════════════════════════════════════════════════
+
+✓ You can minimize the browser window - workers keep running
+✓ You can minimize the Python window - rotation continues
+✓ Press Ctrl+C to stop rotation (workers keep running in browser)
+✓ Close browser manually when all workers are done
+✓ Check any tab's console to see detailed worker progress
+✓ Adjust ROTATION_INTERVAL in the script (default 5 seconds)
+
+═══════════════════════════════════════════════════════════════════════
+
+GOD FORNØJELSE! 🚀

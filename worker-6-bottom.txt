@@ -1,0 +1,239 @@
+// ============================================================================
+// QUINIX WORKER #6 - BOTTOM
+// ============================================================================
+// Denne worker starter fra BUNDEN af listen (request #11903)
+// Paste dette script direkte i browser console - ingen ændringer nødvendigt!
+// ============================================================================
+
+const WORKER_ID = 'WORKER6_BOTTOM';
+
+const CONFIG = {
+    delayBetweenDeletes: 1000,
+    batchSize: 15,
+    pauseBetweenBatches: 2000
+};
+
+// ============================================================================
+// ANTI-THROTTLE: Holder tab'en aktiv så browser ikke pauser scriptet
+// ============================================================================
+(function keepAlive() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        gainNode.gain.value = 0.001;
+        oscillator.start();
+        console.log(`[${WORKER_ID}] 🔊 Keepalive audio aktiveret`);
+    } catch (e) {
+        console.log(`[${WORKER_ID}] ⚠️ Kunne ikke aktivere audio keepalive:`, e);
+    }
+    
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            console.warn(`[${WORKER_ID}] ⚠️ TAB ER SKJULT - scriptet kan blive throttled!`);
+        } else {
+            console.log(`[${WORKER_ID}] ✓ Tab er synlig igen`);
+        }
+    });
+    
+    setInterval(() => {
+        console.log(`[${WORKER_ID}] 💓 Heartbeat - ${deletedCount} denied, ${failedCount} fejlet`);
+        // Log to window.workerLogs for dashboard
+        updateDashboardLogs();
+    }, 30000);
+})();
+// ============================================================================
+
+// Dashboard logging setup
+if (!window.workerLogs) {
+    window.workerLogs = [];
+}
+
+function updateDashboardLogs() {
+    const logEntry = {
+        worker: WORKER_ID,
+        deleted: deletedCount,
+        failed: failedCount,
+        timestamp: Date.now()
+    };
+    window.workerLogs.push(logEntry);
+    if (window.workerLogs.length > 100) {
+        window.workerLogs.shift(); // Keep only last 100 entries
+    }
+}
+
+if (typeof window[`${WORKER_ID}DeletedCount`] === 'undefined') {
+    window[`${WORKER_ID}DeletedCount`] = 0;
+    window[`${WORKER_ID}FailedCount`] = 0;
+}
+var deletedCount = window[`${WORKER_ID}DeletedCount`];
+var failedCount = window[`${WORKER_ID}FailedCount`];
+
+function findAbsenceRequestRows() {
+    const possibleSelectors = [
+        '.absenceRequest__item',
+        '[data-test-id="leaveRequestDataItem"]',
+        '[data-test-id="notificationWrapper"]',
+        '.absence-request-item',
+        '[class*="absence"][class*="request"]',
+        '[class*="request-item"]',
+        'div[role="listitem"]',
+        '.list-item',
+        '[class*="notification"] [class*="item"]',
+        'li[class*="request"]',
+    ];
+    
+    let rows = [];
+    for (const selector of possibleSelectors) {
+        const found = document.querySelectorAll(selector);
+        if (found.length > 0) {
+            rows = Array.from(found);
+            break;
+        }
+    }
+    return rows;
+}
+
+function findDenyButton() {
+    const allButtons = Array.from(document.querySelectorAll('button'));
+    const denyButton = allButtons.find(btn => {
+        if (!btn.offsetParent) return false;
+        const text = btn.textContent || btn.innerText || '';
+        const cleanText = text.trim().toLowerCase();
+        return cleanText === 'deny' || cleanText.includes('deny') || cleanText === 'afvis' || cleanText.includes('afvis');
+    });
+    if (denyButton) return denyButton;
+    
+    const possibleSelectors = [
+        'button[aria-label*="deny"]', 'button[aria-label*="reject"]', 'button[aria-label*="afvis"]',
+        'button[title*="deny"]', 'button[title*="reject"]', '.deny-button', '.reject-button',
+        'button.secondary', '[data-action="deny"]', '[data-action="reject"]',
+    ];
+    for (const selector of possibleSelectors) {
+        try {
+            const button = document.querySelector(selector);
+            if (button && button.offsetParent !== null) return button;
+        } catch (e) { continue; }
+    }
+    return null;
+}
+
+function selectRow(rows) {
+    // Worker 6: Altid tag sidste element (bottom)
+    return rows[rows.length - 1];
+}
+
+async function clickAndDenyRequest(row, index) {
+    try {
+        console.log(`[${WORKER_ID}] Behandler request #${index + 1}...`);
+        
+        let clickTarget = row.querySelector('[data-test-id="leaveRequestDataItem"]') || 
+                         row.querySelector('button') || row.querySelector('[role="button"]') ||
+                         row.querySelector('.data-item') || row;
+        
+        clickTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await sleep(300);
+        clickTarget.click();
+        
+        let denyButton = null;
+        let attempts = 0;
+        while (!denyButton && attempts < 5) {
+            attempts++;
+            await sleep(800);
+            denyButton = findDenyButton();
+            if (!denyButton && attempts < 5) clickTarget.click();
+        }
+        
+        if (!denyButton) {
+            console.log(`  ✗ Kunne ikke finde Deny!`);
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27 }));
+            await sleep(300);
+            failedCount++;
+            window[`${WORKER_ID}FailedCount`] = failedCount;
+            updateDashboardLogs();
+            return false;
+        }
+        
+        console.log(`  ✓ Fandt Deny - klikker...`);
+        denyButton.click();
+        await sleep(300);
+        
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27 }));
+        await sleep(200);
+        
+        if (findDenyButton()) {
+            const closeButton = document.querySelector('[aria-label*="lose"]') || 
+                               document.querySelector('[aria-label*="Close"]') ||
+                               document.querySelector('.close-button');
+            if (closeButton && closeButton.offsetParent) {
+                closeButton.click();
+                await sleep(200);
+            }
+        }
+        
+        await sleep(300);
+        deletedCount++;
+        window[`${WORKER_ID}DeletedCount`] = deletedCount;
+        updateDashboardLogs();
+        console.log(`  ✓ Færdig!`);
+        return true;
+    } catch (error) {
+        console.error(`  ✗ Fejl:`, error);
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27 }));
+        await sleep(300);
+        failedCount++;
+        window[`${WORKER_ID}FailedCount`] = failedCount;
+        return false;
+    }
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function massDeleteAbsenceRequests() {
+    console.log(`🚀 [${WORKER_ID}] Starter...`);
+    let totalProcessed = 0;
+    
+    while (true) {
+        const requestRows = findAbsenceRequestRows();
+        if (requestRows.length === 0) {
+            console.log(`✓ [${WORKER_ID}] Ingen flere requests!`);
+            break;
+        }
+        
+        console.log(`\n[${WORKER_ID}] ${requestRows.length} requests tilbage`);
+        const toProcess = Math.min(CONFIG.batchSize, requestRows.length);
+        
+        for (let i = 0; i < toProcess; i++) {
+            const currentRows = findAbsenceRequestRows();
+            if (currentRows.length === 0) break;
+            
+            const targetRow = selectRow(currentRows);
+            await clickAndDenyRequest(targetRow, totalProcessed + i);
+            await sleep(CONFIG.delayBetweenDeletes);
+        }
+        
+        totalProcessed += toProcess;
+        console.log(`📊 [${WORKER_ID}] ${deletedCount} denied, ${failedCount} fejlet`);
+        
+        const remainingRows = findAbsenceRequestRows();
+        if (remainingRows.length > 0) {
+            await sleep(CONFIG.pauseBetweenBatches);
+        } else {
+            break;
+        }
+    }
+    
+    console.log(`\n✅ [${WORKER_ID}] FÆRDIG! Total: ${deletedCount} denied, ${failedCount} fejlet`);
+}
+
+console.log(`\n═══════════════════════════════════════════`);
+console.log(`  ${WORKER_ID} - READY`);
+console.log(`═══════════════════════════════════════════`);
+console.log(`Strategi: Arbejder fra BUNDEN (sidste index)`);
+console.log(`🚀 Starter om 3 sekunder...\n`);
+
+setTimeout(() => { massDeleteAbsenceRequests(); }, 3000);

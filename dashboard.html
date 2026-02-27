@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Quinix Workers Dashboard</title>
+    <style>
+        body {
+            background-color: #000000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            font-size: 16px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            border: 2px solid #00ff00;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .stats {
+            border: 2px solid #00ff00;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 18px;
+        }
+        .worker-table {
+            border: 2px solid #00ff00;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #00ff00;
+        }
+        th {
+            font-weight: bold;
+        }
+        .status-working {
+            color: #00ff00;
+        }
+        .status-finished {
+            color: #ffff00;
+        }
+        .update-time {
+            text-align: center;
+            margin-top: 20px;
+            color: #888888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>═══ QUINIX WORKERS DASHBOARD ═══</h1>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-row">
+                <span>TOTAL DENIED:</span>
+                <span id="total-denied">0</span>
+            </div>
+            <div class="stat-row">
+                <span>TOTAL FAILED:</span>
+                <span id="total-failed">0</span>
+            </div>
+            <div class="stat-row">
+                <span>RATE (per hour):</span>
+                <span id="rate">0</span>
+            </div>
+            <div class="stat-row">
+                <span>ELAPSED TIME:</span>
+                <span id="elapsed">00:00:00</span>
+            </div>
+        </div>
+        
+        <div class="worker-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>WORKER</th>
+                        <th>STATUS</th>
+                        <th>CURRENT TASK</th>
+                        <th>DENIED</th>
+                        <th>FAILED</th>
+                    </tr>
+                </thead>
+                <tbody id="worker-rows">
+                    <tr><td colspan="5">Loading workers...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="update-time">
+            Last update: <span id="last-update">--:--:--</span>
+        </div>
+    </div>
+    
+    <script>
+        function updateDashboard() {
+            fetch('/dashboard-data')
+                .then(response => response.json())
+                .then(data => {
+                    // Update stats
+                    document.getElementById('total-denied').textContent = data.total_denied;
+                    document.getElementById('total-failed').textContent = data.total_failed;
+                    document.getElementById('rate').textContent = data.rate_per_hour;
+                    document.getElementById('elapsed').textContent = data.elapsed_time;
+                    
+                    // Update worker table
+                    const tbody = document.getElementById('worker-rows');
+                    tbody.innerHTML = '';
+                    
+                    const numWorkers = data.num_workers || 6;
+                    for (let i = 1; i <= numWorkers; i++) {
+                        const worker = data.workers[i] || {denied: 0, failed: 0, status: 'waiting', detail: ''};
+                        const row = document.createElement('tr');
+                        const statusClass = worker.status === 'finished' ? 'status-finished' : 'status-working';
+                        const detail = worker.detail || (worker.status === 'waiting' ? 'Waiting to start...' : '--');
+                        row.innerHTML = `
+                            <td>Worker ${i}</td>
+                            <td class="${statusClass}">${worker.status.toUpperCase()}</td>
+                            <td>${detail}</td>
+                            <td>${worker.denied}</td>
+                            <td>${worker.failed}</td>
+                        `;
+                        tbody.appendChild(row);
+                    }
+                    
+                    // Update timestamp
+                    const now = new Date();
+                    document.getElementById('last-update').textContent = 
+                        now.toLocaleTimeString('en-US', {hour12: false});
+                })
+                .catch(err => {
+                    console.error('Dashboard update failed:', err);
+                });
+        }
+        
+        // Update every 2 seconds
+        setInterval(updateDashboard, 2000);
+        updateDashboard(); // Initial update
+    </script>
+</body>
+</html>

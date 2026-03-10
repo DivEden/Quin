@@ -18,6 +18,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import json
 import webbrowser
+import pyautogui
 
 # ============================================================================
 # CONFIGURATION - Change this to run more or fewer workers!
@@ -194,14 +195,16 @@ def update_dashboard(worker_num, denied, failed, status, detail=""):
             'last_update': time.time()
         }
 
-def process_requests(driver, worker_num):
+def process_requests(driver, worker_num, start_denied=0, start_failed=0):
     """Process absence requests directly in Python - no JavaScript needed!"""
-    denied_count = 0
-    failed_count = 0
+    denied_count = start_denied
+    failed_count = start_failed
     no_items_attempts = 0
     
     print(f"      [Worker {worker_num}] 🚀 Starting request processor...")
-    update_dashboard(worker_num, 0, 0, 'working', 'Starting processor')
+    if start_denied > 0 or start_failed > 0:
+        print(f"      [Worker {worker_num}] Continuing from: Denied={denied_count}, Failed={failed_count}")
+    update_dashboard(worker_num, denied_count, failed_count, 'working', 'Starting processor')
     
     while True:
         try:
@@ -321,6 +324,23 @@ def process_requests(driver, worker_num):
             except Exception as e:
                 error_msg = str(e)
                 print(f"      [Worker {worker_num}] ✗ Error processing request: {error_msg}")
+                
+                # Check if it's a critical error that needs reconnection
+                critical_errors = [
+                    "timed out",
+                    "timeout", 
+                    "tab crashed",
+                    "crashed",
+                    "invalid session",
+                    "disconnected",
+                    "connection refused",
+                    "no such window"
+                ]
+                
+                if any(err in error_msg.lower() for err in critical_errors):
+                    print(f"      [Worker {worker_num}] ⚠️ Critical error - triggering reconnection")
+                    return 'reconnect', denied_count, failed_count
+                
                 failed_count += 1
                 update_dashboard(worker_num, denied_count, failed_count, 'working', f'Failed: {error_msg[:30]}')
                 
@@ -358,107 +378,231 @@ def process_requests(driver, worker_num):
                                 time.sleep(2)
                                 print(f"      [Worker {worker_num}] ✓ Detail panel reopened")
                             else:
-                                print(f"      [Worker {worker_num}] ℹ️ Both panels open, element issue unclear")
+                                # Both panels appear open but element still not interactable
+                                # Full reset: close and reopen everything
+                                print(f"      [Worker {worker_num}] ⚠️ Both panels detected but element blocked - full reset...")
+                                update_dashboard(worker_num, denied_count, failed_count, 'working', 'Full panel reset')
+                                
+                                # Close notification panel
+                                bell = driver.find_element(By.ID, "notificationButtonSchedule")
+                                bell.click()
+                                time.sleep(2)
+                                
+                                # Reopen it
+                                bell.click()
+                                time.sleep(2)
+                                
+                                # Expand absence requests section
+                                expand_btn = WebDriverWait(driver, 5).until(
+                                    EC.element_to_be_clickable((By.CSS_SELECTOR, '[data-test-id="absenceRequestsNotificationsHeading__arrowBtn"]'))
+                                )
+                                if expand_btn.get_attribute('aria-expanded') == 'false':
+                                    expand_btn.click()
+                                time.sleep(2)
+                                print(f"      [Worker {worker_num}] ✓ Full panel reset complete")
                     except Exception as reopen_error:
                         print(f"      [Worker {worker_num}] ✗ Failed to recover: {reopen_error}")
                 
         except Exception as e:
-            print(f"      [Worker {worker_num}] ✗ Main loop error: {e}")
-            time.sleep(2)
-            break
+            error_msg = str(e)
+            print(f"      [Worker {worker_num}] ✗ Main loop error: {error_msg}")
+            
+            # Check if it's a recoverable error (connection/session lost, timeout, crash)
+            recoverable_errors = [
+                "invalid session",
+                "disconnected", 
+                "timed out",
+                "timeout",
+                "tab crashed",
+                "crashed",
+                "connection refused",
+                "no such window"
+            ]
+            
+            if any(err in error_msg.lower() for err in recoverable_errors):
+                print(f"      [Worker {worker_num}] ⚠️ Recoverable error detected - needs reconnection")
+                return 'reconnect', denied_count, failed_count
+            
+            # Unknown error, try reconnect anyway
+            print(f"      [Worker {worker_num}] ⚠️ Unknown error - attempting reconnection anyway")
+            return 'reconnect', denied_count, failed_count
     
     print(f"      [Worker {worker_num}] 🏁 FINISHED! Total denied: {denied_count}, Failed: {failed_count}")
     update_dashboard(worker_num, denied_count, failed_count, 'finished', f'Complete: {denied_count} denied, {failed_count} failed')
+    return 'finished', denied_count, failed_count
 
-def setup_worker(profile_name, pos_x, pos_y, worker_num, password):
-    """Complete setup for one worker: browser, login, panel, processing"""
+def reconnect_worker(profile_name, worker_num, password, denied_count, failed_count):
+    """Reconnect a worker after connection loss"""
+    print(f"\n   [Worker {worker_num}] 🔄 RECONNECTING after connection loss...")
+    update_dashboard(worker_num, denied_count, failed_count, 'reconnecting', 'Restarting browser')
+    
     try:
-        print(f"\n   [Worker {worker_num}] Opening browser ({profile_name})...")
-        update_dashboard(worker_num, 0, 0, 'starting', 'Opening browser')
-        driver = setup_driver(profile_name)
+        # Small delay before reconnecting
+        time.sleep(5)
         
-        # Set much larger size to ensure desktop UI (not mobile), stack at same position
+        # Setup new driver
+        driver = setup_driver(profile_name)
         driver.set_window_position(0, 0)
         driver.set_window_size(1400, 900)
         
-        # First, try to go directly to the schedule page to check if already logged in
-        print(f"   [Worker {worker_num}] Checking if already logged in...")
-        update_dashboard(worker_num, 0, 0, 'starting', 'Checking login status')
+        print(f"   [Worker {worker_num}] Going to schedule page...")
+        update_dashboard(worker_num, denied_count, failed_count, 'reconnecting', 'Loading schedule')
         driver.get("https://web.quinyx.com/schedule/191654")
-        time.sleep(4)
+        time.sleep(5)
         
-        # Check if we're on the schedule page or redirected to login
+        # Check if we need to login again
         current_url = driver.current_url.lower()
-        
         if "login" in current_url or "auth" in current_url:
-            # Need to log in
-            print(f"   [Worker {worker_num}] Not logged in - starting login process...")
-            update_dashboard(worker_num, 0, 0, 'starting', 'Logging in')
+            print(f"   [Worker {worker_num}] Need to login again...")
+            update_dashboard(worker_num, denied_count, failed_count, 'reconnecting', 'Re-authenticating')
             driver.get("https://login.quinyx.com/")
             time.sleep(2)
-            
-            print(f"   [Worker {worker_num}] Auto-logging in...")
-            success = auto_login(driver, password, worker_num)
-            
-            if not success:
-                print(f"   [Worker {worker_num}] ⚠ Auto-login failed, manual intervention needed")
+            if not auto_login(driver, password, worker_num):
                 return None
-            
-            # Extra wait after login before navigation
-            print(f"   [Worker {worker_num}] Stabilizing after login...")
-            time.sleep(3)
-            
-            # Verify browser is still alive before continuing
-            try:
-                _ = driver.current_url
-            except:
-                print(f"   [Worker {worker_num}] ✗ Browser crashed after login")
-                return None
-            
-            print(f"   [Worker {worker_num}] Going to schedule page...")
             driver.get("https://web.quinyx.com/schedule/191654")
             time.sleep(5)
-        else:
-            # Already logged in!
-            print(f"   [Worker {worker_num}] ✓ Already logged in! Skipping login process...")
-            update_dashboard(worker_num, 0, 0, 'starting', 'Already logged in')
-            time.sleep(3)  # Give page time to fully load
         
-        print(f"   [Worker {worker_num}] Opening notification panel...")
-        update_dashboard(worker_num, 0, 0, 'starting', 'Opening notification panel')
-        panel_opened = open_notification_panel(driver, worker_num)
+        # Reopen notification panel
+        print(f"   [Worker {worker_num}] Reopening notification panel...")
+        update_dashboard(worker_num, denied_count, failed_count, 'reconnecting', 'Opening panel')
+        open_notification_panel(driver, worker_num)
+        time.sleep(3)
         
-        # Wait for absence requests to actually load in the list (always wait, not just if panel opened)
-        print(f"   [Worker {worker_num}] Waiting for absence request DATA ITEMS to load...")
-        update_dashboard(worker_num, 0, 0, 'starting', 'Loading absence requests')
-        try:
-            # Wait for the SAME element the workers look for: leaveRequestDataItem
-            WebDriverWait(driver, 45).until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, '[data-test-id="leaveRequestDataItem"]'))
-            )
-            
-            # Count how many are visible
-            items = driver.find_elements(By.CSS_SELECTOR, '[data-test-id="leaveRequestDataItem"]')
-            print(f"   [Worker {worker_num}] ✓ {len(items)} absence request items loaded and visible")
-            
-            # Extra wait to ensure list is fully rendered and DOM is stable
-            time.sleep(3)
-        except:
-            print(f"   [Worker {worker_num}] ⚠ Timeout waiting for leaveRequestDataItem elements")
-            print(f"   [Worker {worker_num}] ⚠ Panel might not be expanded or list is empty")
-            # Don't inject if we never saw the list - return None to mark failure
-            return None
+        # Wait for items to load
+        WebDriverWait(driver, 45).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, '[data-test-id="leaveRequestDataItem"]'))
+        )
         
-        # Start processing requests directly in Python
-        print(f"   [Worker {worker_num}] Starting request processor...")
-        process_requests(driver, worker_num)
-        
-        print(f"   [Worker {worker_num}] ✅ FINISHED PROCESSING")
+        print(f"   [Worker {worker_num}] ✓ Reconnected! Continuing... (Denied: {denied_count}, Failed: {failed_count})")
         return driver
         
     except Exception as e:
-        print(f"   [Worker {worker_num}] ✗ Setup error: {e}")
+        print(f"   [Worker {worker_num}] ✗ Reconnection failed: {e}")
         return None
+
+def setup_worker(profile_name, pos_x, pos_y, worker_num, password):
+    """Complete setup for one worker: browser, login, panel, processing with auto-reconnect"""
+    denied_count = 0
+    failed_count = 0
+    
+    while True:  # Infinite loop with auto-reconnect
+        try:
+            print(f"\n   [Worker {worker_num}] Opening browser ({profile_name})...")
+            update_dashboard(worker_num, denied_count, failed_count, 'starting', 'Opening browser')
+            driver = setup_driver(profile_name)
+            
+            # Set much larger size to ensure desktop UI (not mobile), stack at same position
+            driver.set_window_position(0, 0)
+            driver.set_window_size(1400, 900)
+            
+            # First, try to go directly to the schedule page to check if already logged in
+            print(f"   [Worker {worker_num}] Checking if already logged in...")
+            update_dashboard(worker_num, denied_count, failed_count, 'starting', 'Checking login status')
+            driver.get("https://web.quinyx.com/schedule/191654")
+            time.sleep(4)
+            
+            # Check if we're on the schedule page or redirected to login
+            current_url = driver.current_url.lower()
+            
+            if "login" in current_url or "auth" in current_url:
+                # Need to log in
+                print(f"   [Worker {worker_num}] Not logged in - starting login process...")
+                update_dashboard(worker_num, denied_count, failed_count, 'starting', 'Logging in')
+                driver.get("https://login.quinyx.com/")
+                time.sleep(2)
+                
+                print(f"   [Worker {worker_num}] Auto-logging in...")
+                success = auto_login(driver, password, worker_num)
+                
+                if not success:
+                    print(f"   [Worker {worker_num}] ⚠ Auto-login failed, manual intervention needed")
+                    time.sleep(10)
+                    continue
+                
+                # Extra wait after login before navigation
+                print(f"   [Worker {worker_num}] Stabilizing after login...")
+                time.sleep(3)
+                
+                # Verify browser is still alive before continuing
+                try:
+                    _ = driver.current_url
+                except:
+                    print(f"   [Worker {worker_num}] ✗ Browser crashed after login")
+                    time.sleep(10)
+                    continue
+                
+                print(f"   [Worker {worker_num}] Going to schedule page...")
+                driver.get("https://web.quinyx.com/schedule/191654")
+                time.sleep(5)
+            else:
+                # Already logged in!
+                print(f"   [Worker {worker_num}] ✓ Already logged in! Skipping login process...")
+                update_dashboard(worker_num, denied_count, failed_count, 'starting', 'Already logged in')
+                time.sleep(3)  # Give page time to fully load
+            
+            print(f"   [Worker {worker_num}] Opening notification panel...")
+            update_dashboard(worker_num, denied_count, failed_count, 'starting', 'Opening notification panel')
+            panel_opened = open_notification_panel(driver, worker_num)
+            
+            # Wait for absence requests to actually load in the list (always wait, not just if panel opened)
+            print(f"   [Worker {worker_num}] Waiting for absence request DATA ITEMS to load...")
+            update_dashboard(worker_num, denied_count, failed_count, 'starting', 'Loading absence requests')
+            try:
+                # Wait for the SAME element the workers look for: leaveRequestDataItem
+                WebDriverWait(driver, 45).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, '[data-test-id=\"leaveRequestDataItem\"]'))
+                )
+                
+                # Count how many are visible
+                items = driver.find_elements(By.CSS_SELECTOR, '[data-test-id="leaveRequestDataItem"]')
+                print(f"   [Worker {worker_num}] ✓ {len(items)} absence request items loaded and visible")
+                
+                # Extra wait to ensure list is fully rendered and DOM is stable
+                time.sleep(3)
+            except:
+                print(f"   [Worker {worker_num}] ⚠ Timeout waiting for leaveRequestDataItem elements")
+                print(f"   [Worker {worker_num}] ⚠ Panel might not be expanded or list is empty")
+                time.sleep(10)
+                continue
+            
+            # Start processing requests directly in Python
+            print(f"   [Worker {worker_num}] Starting request processor...")
+            result = process_requests(driver, worker_num, denied_count, failed_count)
+                
+            # Check result
+            if result and result[0] == 'reconnect':
+                # Session lost, need to reconnect
+                status, denied_count, failed_count = result
+                print(f"   [Worker {worker_num}] Connection lost. Denied: {denied_count}, Failed: {failed_count}")
+                
+                # Close dead driver
+                try:
+                    driver.quit()
+                except:
+                    pass
+                
+                # Attempt reconnection
+                driver = reconnect_worker(profile_name, worker_num, password, denied_count, failed_count)
+                if driver is None:
+                    print(f"   [Worker {worker_num}] ✗ Reconnection failed, retrying in 10 seconds...")
+                    time.sleep(10)
+                    continue  # Retry from beginning
+                # If reconnect successful, continue with the loop (will call process_requests again)
+                continue
+            elif result and result[0] == 'finished':
+                # Actually finished processing
+                print(f"   [Worker {worker_num}] ✅ FINISHED PROCESSING")
+                return driver
+            else:
+                # Unknown termination
+                print(f"   [Worker {worker_num}] Exited unexpectedly")
+                return driver
+                
+        except Exception as e:
+            print(f"   [Worker {worker_num}] ✗ Setup error: {e}")
+            print(f"   [Worker {worker_num}] Retrying in 10 seconds...")
+            time.sleep(10)
+            continue  # Retry
 
 class DashboardHandler(SimpleHTTPRequestHandler):
     """HTTP handler for dashboard"""
@@ -515,6 +659,17 @@ def run_dashboard_server():
     print("   Dashboard server running on http://localhost:8765/dashboard.html")
     server.serve_forever()
 
+def keep_awake():
+    """Move mouse slightly every 5 minutes to prevent Mac sleep"""
+    while True:
+        try:
+            time.sleep(300)  # 5 minutes
+            current_x, current_y = pyautogui.position()
+            pyautogui.moveRel(1, 1, duration=0.1)
+            time.sleep(0.1)
+            pyautogui.moveRel(-1, -1, duration=0.1)
+        except:
+            pass
 
 def main():
     print("=" * 80)
@@ -558,6 +713,11 @@ def main():
     server_thread = threading.Thread(target=run_dashboard_server, daemon=True)
     server_thread.start()
     time.sleep(1)  # Let server start
+    
+    # Start keep-awake thread to prevent Mac sleep
+    awake_thread = threading.Thread(target=keep_awake, daemon=True)
+    awake_thread.start()
+    print("✓ Keep-awake enabled (prevents Mac sleep)")
     
     # Open dashboard in browser
     webbrowser.open('http://localhost:8765/dashboard.html')
